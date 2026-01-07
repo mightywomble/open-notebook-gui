@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+  <div class="pf-v5-c-content">
+    <h1>Setup</h1>
+    <p>Configure company branding for the UI.</p>
+  </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+  <div class="pf-v5-l-grid pf-m-gutter">
+    <div class="pf-v5-l-grid__item pf-m-6-col">
+      <div class="pf-v5-c-card pf-m-full-height">
+        <div class="pf-v5-c-card__title">Company branding</div>
+        <div class="pf-v5-c-card__body">
+          <form action="{{ url_for('setup.company_setup') }}" method="POST" enctype="multipart/form-data" class="pf-v5-c-form">
+            <div class="pf-v5-c-form__group">
+              <label class="pf-v5-c-form__label" for="company_name">
+                <span class="pf-v5-c-form__label-text">Company name</span>
+              </label>
+              <input class="pf-v5-c-form-control" type="text" id="company_name" name="company_name" value="{{ cfg.company_name }}" required />
+              <p class="pf-v5-c-form__helper-text">Used in the top banner as “&lt;Company&gt; AI Knowledgebase”.</p>
+            </div>
+
+            <div class="pf-v5-c-form__group pf-v5-u-mt-md">
+              <label class="pf-v5-c-form__label" for="company_icon">
+                <span class="pf-v5-c-form__label-text">Company icon</span>
+              </label>
+              <input class="pf-v5-c-form-control" type="file" id="company_icon" name="company_icon" accept="image/*" />
+              <p class="pf-v5-c-form__helper-text">PNG/JPG/SVG/WEBP/GIF. Recommended: square icon ~64px.</p>
+            </div>
+
+            {% if cfg.icon_path %}
+            <div class="pf-v5-u-mt-md">
+              <div class="pf-v5-u-color-200 pf-v5-u-mb-sm">Current icon</div>
+              <img src="{{ url_for('static', filename=cfg.icon_path) }}" alt="{{ cfg.company_name }} icon" style="height: 48px; width: 48px; object-fit: contain; background: #fff; border-radius: 6px; padding: 4px;" />
+            </div>
+            {% endif %}
+
+            <div class="pf-v5-c-form__actions pf-v5-u-mt-md">
+              <button class="pf-v5-c-button pf-m-primary" type="submit">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-v5-l-grid__item pf-m-6-col">
+      <div class="pf-v5-c-card pf-m-full-height">
+        <div class="pf-v5-c-card__title">Preview</div>
+        <div class="pf-v5-c-card__body">
+          <div class="pf-v5-u-p-md" style="background: #1b1d21; color: white; border-radius: 6px;">
+            {% if cfg.icon_path %}
+              <img src="{{ url_for('static', filename=cfg.icon_path) }}" alt="{{ cfg.company_name }} icon" style="height: 28px; width: 28px; object-fit: contain; vertical-align: middle; margin-right: 0.5rem; background: #fff; border-radius: 6px; padding: 2px;" />
+            {% endif %}
+            <strong style="vertical-align: middle;">{{ cfg.company_name }} AI Knowledgebase</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

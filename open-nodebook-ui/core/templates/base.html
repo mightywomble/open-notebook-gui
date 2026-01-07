@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ company_name }} AI Knowledgebase{% endblock %}</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@patternfly/patternfly@5.4.2/patternfly.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@patternfly/patternfly@5.4.2/patternfly-addons.css">
+
+    <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+
+    <style>
+        .pf-v5-c-page__sidebar { background-color: #151515; }
+        .pf-v5-c-nav__link { color: #d2d2d2; }
+        .pf-v5-c-page__header { background-color: #1b1d21; color: white; }
+        .pf-v5-c-nav__link:hover { background-color: #2c2e35; color: white; }
+
+        /* Sidebar nav tweaks (section headers + consistent indentation) */
+        .pf-v5-c-nav__link { display: flex; align-items: center; }
+        .pf-v5-c-nav__item.nav-section > .pf-v5-c-nav__link { cursor: default; font-weight: 600; }
+        .pf-v5-c-nav__item.nav-section > .pf-v5-c-nav__link:hover { background: transparent; color: #fff; }
+        .pf-v5-c-nav__item.nav-child .pf-v5-c-nav__link { padding-left: 2.25rem; }
+        .pf-v5-c-nav__item.nav-grandchild .pf-v5-c-nav__link { padding-left: 3.25rem; }
+        .pf-v5-c-nav__item.nav-section { margin-top: 0.25rem; }
+    </style>
+</head>
+<body class="{{ 'pf-v5-c-page' if current_user.is_authenticated else '' }}">
+{% set authed = current_user.is_authenticated %}
+
+{% if authed %}
+    <header class="pf-v5-c-page__header">
+        <div class="pf-v5-c-page__header-brand">
+            <a href="{{ url_for('dashboard.index') }}" class="pf-v5-c-page__header-brand-link" style="text-decoration: none; color: white; font-weight: bold;">
+                {% if company_icon_url %}
+                  <img src="{{ company_icon_url }}" alt="{{ company_name }} icon" style="height: 28px; width: 28px; object-fit: contain; vertical-align: middle; margin-right: 0.5rem; background: #fff; border-radius: 6px; padding: 2px;" />
+                {% endif %}
+                <span style="vertical-align: middle;">{{ company_name }} AI Knowledgebase</span>
+            </a>
+        </div>
+        <div class="pf-v5-c-page__header-tools">
+            <div class="pf-v5-c-page__header-tools-group">
+                <div class="pf-v5-c-dropdown">
+                    <button class="pf-v5-c-button pf-m-plain" id="settings-dropdown" onclick="toggleDropdown()">
+                        {{ current_user.email }} <i class="fas fa-cog"></i>
+                    </button>
+                    <ul class="pf-v5-c-dropdown__menu" id="dropdown-menu" style="display: none;">
+                        <li><a class="pf-v5-c-dropdown__menu-item" href="#"><i class="fas fa-user pf-v5-u-mr-sm" aria-hidden="true"></i>Profile</a></li>
+
+                        {% if current_user.is_superuser() or current_user.is_admin() %}
+                        <li class="pf-v5-c-divider" role="separator"></li>
+                        {% endif %}
+
+                        {% if current_user.is_admin() %}
+                        <li>
+                            <a class="pf-v5-c-dropdown__menu-item" href="{{ url_for('setup.company_setup') }}">
+                                <i class="fas fa-wrench pf-v5-u-mr-sm" aria-hidden="true"></i><strong>Setup</strong>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if current_user.is_superuser() %}
+                        <li>
+                            <a class="pf-v5-c-dropdown__menu-item" href="{{ url_for('auth.google_setup') }}">
+                                <i class="fab fa-google pf-v5-u-mr-sm" aria-hidden="true"></i><strong>Setup Google Auth</strong>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if current_user.is_admin() %}
+                        <li>
+                            <a class="pf-v5-c-dropdown__menu-item" href="{{ url_for('auth.manage_users_groups') }}">
+                                <i class="fas fa-users-gear pf-v5-u-mr-sm" aria-hidden="true"></i>View Users & Groups
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <li class="pf-v5-c-divider" role="separator"></li>
+                        <li><a class="pf-v5-c-dropdown__menu-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-right-from-bracket pf-v5-u-mr-sm" aria-hidden="true"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="pf-v5-c-page__sidebar">
+        <div class="pf-v5-c-page__sidebar-body">
+            <nav class="pf-v5-c-nav" aria-label="Global">
+                <ul class="pf-v5-c-nav__list">
+                    {% set ep = request.endpoint %}
+                    {% if current_user.is_admin() %}
+                    <li class="pf-v5-c-nav__item {% if ep == 'nodes.list_nodes' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('nodes.list_nodes') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-server pf-v5-u-mr-sm" aria-hidden="true"></i>Manage Nodes
+                        </a>
+                    </li>
+                    {% endif %}
+
+
+                    <li class="pf-v5-c-nav__item nav-section">
+                        <span class="pf-v5-c-nav__link">
+                            <i class="fas fa-robot pf-v5-u-mr-sm" aria-hidden="true"></i>Ask AI
+                        </span>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'dashboard.index' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('dashboard.index') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-comments pf-v5-u-mr-sm" aria-hidden="true"></i>Ask AI
+                        </a>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.create_article' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.create_article') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-file-circle-plus pf-v5-u-mr-sm" aria-hidden="true"></i>Create KB Article
+                        </a>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-grandchild {% if ep == 'kb.add_link' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.add_link') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-link pf-v5-u-mr-sm" aria-hidden="true"></i>Add Link
+                        </a>
+                    </li>
+
+                    <li class="pf-v5-c-nav__item nav-section">
+                        <span class="pf-v5-c-nav__link">
+                            <i class="fas fa-book pf-v5-u-mr-sm" aria-hidden="true"></i>Notebooks
+                        </span>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.new_articles' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.new_articles') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-inbox pf-v5-u-mr-sm" aria-hidden="true"></i>New Articles
+                        </a>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.list_articles' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.list_articles') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-book-open pf-v5-u-mr-sm" aria-hidden="true"></i>All Knowledge
+                        </a>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.peer_review' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.peer_review') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-user-check pf-v5-u-mr-sm" aria-hidden="true"></i>Peer Review
+                        </a>
+                    </li>
+
+                    {% if current_user.is_reviewer() %}
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.internal_list' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.internal_list') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-lock pf-v5-u-mr-sm" aria-hidden="true"></i>Internal KB
+                        </a>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.customer_list' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.customer_list') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-users pf-v5-u-mr-sm" aria-hidden="true"></i>Customer KB
+                        </a>
+                    </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.unapproved_list' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('kb.unapproved_list') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-triangle-exclamation pf-v5-u-mr-sm" aria-hidden="true"></i>Unapproved
+                        </a>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <main class="pf-v5-c-page__main" tabindex="-1">
+        <section class="pf-v5-c-page__main-section pf-m-light">
+            <div class="pf-v5-c-content">
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="pf-v5-c-alert pf-m-{{ category if category in ['success', 'danger', 'warning', 'info'] else 'info' }} pf-u-mb-md" role="alert">
+            <div class="pf-v5-c-alert__icon">
+                <i class="fas fa-check-circle" aria-hidden="true"></i>
+            </div>
+            <p class="pf-v5-c-alert__title">{{ message }}</p>
+        </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+{% if authed %}
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function toggleDropdown() {
+            var menu = document.getElementById('dropdown-menu');
+            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+        }
+
+
+        document.addEventListener('click', function(event) {
+            var dropdown = document.querySelector('.pf-v5-c-dropdown');
+            var menu = document.getElementById('dropdown-menu');
+            if (dropdown && menu && !dropdown.contains(event.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    </script>
+{% endif %}
+</body>
+</html>

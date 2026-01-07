@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <div class="pf-v5-c-content pf-v5-u-display-flex pf-v5-u-justify-content-space-between pf-v5-u-align-items-center">
+        <h1>Manage Nodes</h1>
+        <a href="{{ url_for('nodes.add_node') }}" class="pf-v5-c-button pf-m-primary">
+            <i class="fas fa-plus-circle"></i> Add Node
+        </a>
+    </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <table class="pf-v5-c-table pf-m-grid-md">
+        <thead>
+            <tr>
+                <th>Node Name</th>
+                <th>API IP</th>
+                <th>UI Host</th>
+                <th class="pf-v5-u-text-align-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for node in nodes %}
+                <tr id="node-{{ node.id }}">
+                    <td>{{ node.name }}</td>
+                    <td>{{ node.ip_address }}</td>
+                    <td>{{ node.ui_host or 'Default (8502)' }}</td>
+                    <td class="pf-v5-u-text-align-center">
+                        <div class="pf-v5-c-action-list">
+                            <a href="{{ url_for('nodes.edit_node', node_id=node.id) }}" class="pf-v5-c-button pf-m-secondary">
+                                <i class="fas fa-pencil-alt"></i> Edit Node
+                            </a>
+
+                            <a href="{{ url_for('kb.manage_notebooks', node_id=node.id) }}" class="pf-v5-c-button pf-m-primary">
+                                <i class="fas fa-book"></i> Manage Notebooks
+                            </a>
+
+                    <button class="pf-v5-c-button pf-m-danger" 
+                            hx-delete="{{ url_for('nodes.delete_node', node_id=node.id) }}"
+                            hx-confirm="Delete this node and all connection settings?"
+                            hx-target="#node-{{ node.id }}"
+                            hx-swap="outerHTML">
+                        <i class="fas fa-trash-alt"></i> Delete Node
+                    </button>
+                </div>
+            </td>
+        </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

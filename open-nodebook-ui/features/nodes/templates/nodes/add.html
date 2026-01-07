@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pf-v5-c-content">
+    <h1>Register New Open-Nodebook</h1>
+</div>
+
+<div class="pf-v5-c-card pf-m-compact" style="max-width: 600px; margin-top: 20px;">
+    <div class="pf-v5-c-card__body">
+        <form action="{{ url_for('nodes.add_node') }}" method="post" class="pf-v5-c-form">
+            <div class="pf-v5-c-form__group">
+                <label class="pf-v5-c-form__label" for="name">Node Name</label>
+                <input class="pf-v5-c-form-control" type="text" id="name" name="name" placeholder="e.g. AI-Worker-01" required />
+            </div>
+            <div class="pf-v5-c-form__group">
+                <label class="pf-v5-c-form__label" for="ip_address">IP Address / Hostname</label>
+                <input class="pf-v5-c-form-control" type="text" id="ip_address" name="ip_address" placeholder="192.168.1.xx" required />
+            </div>
+            <div class="pf-v5-c-form__group">
+                <label class="pf-v5-c-form__label" for="description">Description</label>
+                <textarea class="pf-v5-c-form-control" id="description" name="description"></textarea>
+            </div>
+            <div class="pf-v5-c-form__group">
+               <label class="pf-v5-c-form__label">API IP Address (Port 5055)</label>
+                <input class="pf-v5-c-form-control" type="text" name="ip_address" placeholder="100.77.164.86" required>
+            </div>
+
+            <div class="pf-v5-c-form__group">
+                <label class="pf-v5-c-form__label">UI Hostname/IP (Port 8502 or DNS)</label>
+                <input class="pf-v5-c-form-control" type="text" name="ui_host" placeholder="opennotebook.paedave.com">
+                <p class="pf-v5-c-form__helper-text">Leave blank to default to IP:8502</p>
+            </div>
+            <div class="pf-v5-c-form__actions">
+                <button class="pf-v5-c-button pf-m-primary" type="submit">Register Node</button>
+                <a href="/" class="pf-v5-c-button pf-m-link">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

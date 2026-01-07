@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pf-v5-c-login" style="background-color: #f0f2f5; height: 100vh;">
+    <div class="pf-v5-c-login__container">
+        <header class="pf-v5-c-login__header">
+            <h1 style="color: #000; font-size: 3rem; font-weight: bold;">{{ company_name }} AI Knowledgebase</h1>
+        </header>
+        <main class="pf-v5-c-login__main">
+            <div class="pf-v5-c-login__main-header">
+                <h2 class="pf-v5-c-title pf-m-3xl">Log in to your account</h2>
+            </div>
+            <div class="pf-v5-c-login__main-body">
+                <form action="{{ url_for('auth.login') }}" method="POST" class="pf-v5-c-form">
+                    <div class="pf-v5-c-form__group">
+                        <label class="pf-v5-c-form__label" for="email">Email</label>
+                        <input class="pf-v5-c-form-control" type="email" id="email" name="email" required>
+                    </div>
+                    <div class="pf-v5-c-form__group">
+                        <label class="pf-v5-c-form__label" for="password">Password</label>
+                        <input class="pf-v5-c-form-control" type="password" id="password" name="password" required>
+                    </div>
+                    <button class="pf-v5-c-button pf-m-primary pf-m-block" type="submit">Log in</button>
+                </form>
+                
+                <div class="pf-v5-c-login__main-footer-band">
+                    <p class="pf-v5-c-login__main-footer-band-item">OR</p>
+                </div>
+
+                <a href="{{ url_for('auth.google_login') }}" class="pf-v5-c-button pf-m-secondary pf-m-block">
+                    <i class="fab fa-google"></i> Log in with Google
+                </a>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

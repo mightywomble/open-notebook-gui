@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <div class="pf-v5-c-content">
+        <h1>Users &amp; Groups Management</h1>
+        <p>Manage users, groups, and group memberships</p>
+    </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <div class="pf-v5-l-grid pf-m-gutter">
+        {# Users List #}
+        <div class="pf-v5-l-grid__item pf-m-12-col-on-md pf-m-6-col-on-lg">
+            <div class="pf-v5-c-card">
+                <div class="pf-v5-c-card__title">
+                    <h2 class="pf-v5-c-title pf-m-lg">Users</h2>
+                </div>
+                <div class="pf-v5-c-card__body">
+                    <table class="pf-v5-c-table pf-m-compact">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Groups</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    {% for group in user.groups %}
+                                    <span class="pf-v5-c-label pf-m-blue pf-u-mr-xs">{{ group.name }}</span>
+                                    {% else %}
+                                    <span class="pf-v5-u-color-200">No groups</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <div class="pf-v5-c-dropdown">
+                                        <button
+                                            class="pf-v5-c-button pf-m-plain js-user-actions-toggle"
+                                            type="button"
+                                            aria-haspopup="true"
+                                            aria-expanded="false"
+                                            data-menu-id="user-actions-menu-{{ user.id }}">
+                                            <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                                            <span class="pf-v5-screen-reader">Actions</span>
+                                        </button>
+
+                                        <ul
+                                            class="pf-v5-c-dropdown__menu pf-m-align-right js-user-actions-menu"
+                                            id="user-actions-menu-{{ user.id }}"
+                                            style="display: none;">
+                                            <li>
+                                                <button class="pf-v5-c-dropdown__menu-item pf-m-disabled" type="button" disabled>
+                                                    Add to Group
+                                                </button>
+                                            </li>
+                                            {% for group in groups %}
+                                            {% if group not in user.groups %}
+                                            <li>
+                                                <form action="{{ url_for('auth.add_user_to_group') }}" method="POST" style="margin: 0;">
+                                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                    <input type="hidden" name="group_id" value="{{ group.id }}">
+                                                    <button type="submit" class="pf-v5-c-dropdown__menu-item">
+                                                        {{ group.name }}
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endif %}
+                                            {% endfor %}
+
+                                            {% if user.groups %}
+                                            <li class="pf-v5-c-divider" role="separator"></li>
+                                            <li>
+                                                <button class="pf-v5-c-dropdown__menu-item pf-m-disabled" type="button" disabled>
+                                                    Remove from Group
+                                                </button>
+                                            </li>
+                                            {% for group in user.groups %}
+                                            <li>
+                                                <form action="{{ url_for('auth.remove_user_from_group') }}" method="POST" style="margin: 0;">
+                                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                                    <input type="hidden" name="group_id" value="{{ group.id }}">
+                                                    <button type="submit" class="pf-v5-c-dropdown__menu-item" style="color: #c9190b;">
+                                                        {{ group.name }}
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endfor %}
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# Groups List and Create #}
+        <div class="pf-v5-l-grid__item pf-m-12-col-on-md pf-m-6-col-on-lg">
+            <div class="pf-v5-c-card pf-u-mb-md">
+                <div class="pf-v5-c-card__title">
+                    <h2 class="pf-v5-c-title pf-m-lg">Create New Group</h2>
+                </div>
+                <div class="pf-v5-c-card__body">
+                    <form action="{{ url_for('auth.create_group') }}" method="POST" class="pf-v5-c-form">
+                        <div class="pf-v5-c-form__group">
+                            <label class="pf-v5-c-form__label" for="name">
+                                <span class="pf-v5-c-form__label-text">Group Name</span>
+                                <span class="pf-v5-c-form__label-required" aria-hidden="true">*</span>
+                            </label>
+                            <input class="pf-v5-c-form-control" type="text" id="name" name="name" required>
+                        </div>
+                        <div class="pf-v5-c-form__group">
+                            <label class="pf-v5-c-form__label" for="description">Description</label>
+                            <textarea class="pf-v5-c-form-control" id="description" name="description" rows="2"></textarea>
+                        </div>
+                        <div class="pf-v5-c-form__actions">
+                            <button class="pf-v5-c-button pf-m-primary" type="submit">Create Group</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="pf-v5-c-card">
+                <div class="pf-v5-c-card__title">
+                    <h2 class="pf-v5-c-title pf-m-lg">Existing Groups</h2>
+                </div>
+                <div class="pf-v5-c-card__body">
+                    <table class="pf-v5-c-table pf-m-compact">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Members</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group in groups %}
+                            <tr>
+                                <td><strong>{{ group.name }}</strong></td>
+                                <td>{{ group.description or '—' }}</td>
+                                <td>{{ group.users|length }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        function closeAllUserActionMenus() {
+            document.querySelectorAll('.js-user-actions-menu').forEach(function (menu) {
+                menu.style.display = 'none';
+            });
+            document.querySelectorAll('.js-user-actions-toggle').forEach(function (btn) {
+                btn.setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        document.querySelectorAll('.js-user-actions-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                var menuId = btn.getAttribute('data-menu-id');
+                var menu = document.getElementById(menuId);
+                if (!menu) return;
+
+                var isOpen = menu.style.display === 'block';
+                closeAllUserActionMenus();
+
+                if (!isOpen) {
+                    menu.style.display = 'block';
+                    btn.setAttribute('aria-expanded', 'true');
+                }
+            });
+        });
+
+        // Prevent clicks inside the menu from closing it (so you can click items normally).
+        document.querySelectorAll('.js-user-actions-menu').forEach(function (menu) {
+            menu.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
+        });
+
+        // Clicking anywhere else closes all open user action menus.
+        document.addEventListener('click', function () {
+            closeAllUserActionMenus();
+        });
+    });
+</script>
+{% endblock %}

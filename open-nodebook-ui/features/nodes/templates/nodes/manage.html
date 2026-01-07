@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="pf-v5-c-content">
+    <h1>Manage Server: {{ node.name }}</h1>
+    <p>Connected to: <code>{{ node.ip_address }}:5055</code></p>
+    
+    <form hx-post="{{ url_for('nodes.create_nb', node_id=node.id) }}" 
+          hx-target="body" 
+          style="margin-top: 20px; margin-bottom: 30px;" 
+          class="pf-v5-c-form pf-m-horizontal">
+        <div class="pf-v5-c-form__group">
+            <div class="pf-v5-c-form__group-control">
+                <input class="pf-v5-c-form-control" type="text" name="notebook_name" placeholder="Notebook Name" required />
+                <button class="pf-v5-c-button pf-m-primary" type="submit">
+                    <i class="fas fa-plus"></i> Create Notebook
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="pf-v5-l-grid pf-m-gutter">
+    {% for nb in notebooks %}
+    <div id="nb-card-{{ loop.index }}" class="pf-v5-l-grid__item pf-m-12-col pf-m-4-col-on-md">
+        <article class="pf-v5-c-card pf-m-compact">
+            <div class="pf-v5-c-card__title">
+                <i class="fas fa-book-open" style="color: #0066cc;"></i>&nbsp; {{ nb.name }}
+            </div>
+            
+            <div class="pf-v5-c-card__body">
+                <p><strong>Description:</strong> {{ nb.description if nb.description else 'No description.' }}</p>
+                <div style="margin-top: 10px;">
+                    <span class="pf-v5-c-badge pf-m-read">{{ nb.source_count }} Sources</span>
+                </div>
+            </div>
+
+            <div class="pf-v5-c-card__footer">
+                {% set clean_id = nb.id.split(':')[-1] if ':' in nb.id else nb.id %}
+                
+                <div class="pf-v5-c-helper-text">
+                    <a href="http://{{ node.ip_address }}:5055/notebook/{{ clean_id }}" 
+                       target="_blank" 
+                       class="pf-v5-c-button pf-m-link pf-m-inline">
+                        <i class="fas fa-external-link-alt"></i> Open
+                    </a>
+                    
+                    <button class="pf-v5-c-button pf-m-link pf-m-inline pf-m-danger" 
+                            style="color: #c9190b; margin-left: 15px;"
+                            hx-delete="{{ url_for('nodes.delete_nb', node_id=node.id, nb_id=nb.id) }}"
+                            hx-target="#nb-card-{{ loop.index }}"
+                            hx-swap="outerHTML"
+                            hx-confirm="Are you sure you want to delete '{{ nb.name }}'?">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </article>
+    </div>
+    {% else %}
+    <div class="pf-v5-c-empty-state">
+        <div class="pf-v5-c-empty-state__content">
+            <i class="fas fa-search pf-v5-c-empty-state__icon" style="font-size: 3em; color: #6a6e73;"></i>
+            <h2 class="pf-v5-c-title pf-m-lg">No Notebooks Found</h2>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

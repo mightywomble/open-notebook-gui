@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <div class="pf-v5-c-content">
+        <h1>Service Knowledge Links</h1>
+    </div>
+
+    <div class="pf-v5-c-toolbar" id="link-toolbar">
+        <div class="pf-v5-c-toolbar__content">
+            <div class="pf-v5-c-toolbar__content-section">
+                <form method="GET" action="{{ url_for('kb.list_links') }}" class="pf-v5-u-display-flex pf-v5-u-align-items-center pf-v5-u-gap-md">
+                    <div class="pf-v5-c-toolbar__item">
+                        <input class="pf-v5-c-form-control" type="search" name="search" value="{{ search_query }}" placeholder="Search by title...">
+                    </div>
+                    
+                    <div class="pf-v5-c-toolbar__item">
+                        <select class="pf-v5-c-form-control" name="filter" onchange="this.form.submit()">
+                            <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Links</option>
+                            <option value="youtube" {% if filter_type == 'youtube' %}selected{% endif %}>YouTube Only</option>
+                            <option value="other" {% if filter_type == 'other' %}selected{% endif %}>General Links</option>
+                        </select>
+                    </div>
+                    
+                    <div class="pf-v5-c-toolbar__item">
+                        <button class="pf-v5-c-button pf-m-primary" type="submit">Filter</button>
+                        <a href="{{ url_for('kb.list_links') }}" class="pf-v5-c-button pf-m-link">Clear</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <table class="pf-v5-c-table pf-m-grid-md">
+        <thead>
+            <tr>
+                <th style="width: 60px;">Type</th>
+                <th>Title</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for link in links %}
+            {# Defensive URL extraction to prevent NoneType errors #}
+            {% set asset = link.get('asset') %}
+            {% set actual_url = asset.get('url') if asset and asset.get('url') else "#" %}
+            
+            <tr id="link-{{ link.id }}">
+                <td class="pf-v5-u-text-align-center">
+                    {% if "youtube.com" in actual_url or "youtu.be" in actual_url %}
+                        <i class="fas fa-video pf-v5-u-info-color-100" title="YouTube"></i>
+                    {% else %}
+                        <i class="fas fa-external-link-alt" title="Web Link"></i>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ actual_url }}" target="_blank" class="pf-v5-c-button pf-m-link pf-m-inline">
+                        {# Display the full title from the API #}
+                        <strong>{{ link.title }}</strong>
+                    </a>
+                    <div class="pf-v5-u-font-size-xs pf-v5-u-color-200">{{ actual_url }}</div>
+                </td>
+                <td>
+                    <button class="pf-v5-c-button pf-m-link pf-m-danger" 
+                            hx-delete="{{ url_for('kb.delete_kb_source', source_id=link.id) }}"
+                            hx-confirm="Delete this link?"
+                            hx-target="#link-{{ link.id }}" 
+                            hx-swap="outerHTML">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="pf-v5-u-text-align-center pf-v5-u-p-xl">
+                    <p>No links found matching your criteria.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

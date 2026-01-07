@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <h1>Notebooks on {{ node.name }}</h1>
+    <form action="{{ url_for('kb.create_notebook', node_id=node.id) }}" method="POST" class="pf-v5-u-mt-md">
+        <div class="pf-v5-c-input-group">
+            <input class="pf-v5-c-form-control" type="text" name="notebook_name" placeholder="New Notebook Name" required>
+            <button class="pf-v5-c-button pf-m-primary" type="submit">Create Notebook</button>
+        </div>
+    </form>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <table class="pf-v5-c-table pf-m-grid-md">
+        <thead>
+            <tr><th>Notebook Name</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for nb in notebooks %}
+            <tr id="nb-{{ nb.id|replace(':', '-') }}">
+                <td>
+                    <a href="{{ url_for('kb.list_articles', notebook_id=nb.id) }}"><strong>{{ nb.name }}</strong></a>
+                </td>
+                <td>
+                    <button class="pf-v5-c-button pf-m-link pf-m-danger"
+                            hx-delete="{{ url_for('kb.delete_notebook', node_id=node.id, nb_id=nb.id) }}"
+                            hx-confirm="Are you sure? This will delete all articles inside this notebook."
+                            hx-target="#nb-{{ nb.id|replace(':', '-') }}"
+                            hx-swap="outerHTML">
+                        Delete Notebook
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

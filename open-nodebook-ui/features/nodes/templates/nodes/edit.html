@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <div class="pf-v5-c-content">
+        <h1>Edit Node: {{ node.name }}</h1>
+    </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <div class="pf-v5-c-card">
+        <div class="pf-v5-c-card__body">
+            <form action="{{ url_for('nodes.edit_node', node_id=node.id) }}" method="POST" class="pf-v5-c-form">
+                <div class="pf-v5-c-form__group">
+                    <label class="pf-v5-c-form__label" for="name">Node Name</label>
+                    <input class="pf-v5-c-form-control" type="text" id="name" name="name" value="{{ node.name }}" required>
+                </div>
+
+                <div class="pf-v5-c-form__group">
+                    <label class="pf-v5-c-form__label" for="ip_address">API IP Address (Port 5055)</label>
+                    <input class="pf-v5-c-form-control" type="text" id="ip_address" name="ip_address" value="{{ node.ip_address }}" required>
+                </div>
+
+                <div class="pf-v5-c-form__group">
+                    <label class="pf-v5-c-form__label" for="ui_host">UI Hostname/IP (Port 8502 or DNS)</label>
+                    <input class="pf-v5-c-form-control" type="text" id="ui_host" name="ui_host" value="{{ node.ui_host or '' }}">
+                    <p class="pf-v5-c-form__helper-text">Leave blank to default to [IP]:8502</p>
+                </div>
+
+                <div class="pf-v5-c-form__group">
+                    <label class="pf-v5-c-form__label" for="description">Description</label>
+                    <textarea class="pf-v5-c-form-control" id="description" name="description">{{ node.description or '' }}</textarea>
+                </div>
+
+                <div class="pf-v5-c-form__actions">
+                    <button class="pf-v5-c-button pf-m-primary" type="submit">Update Node</button>
+                    <a href="{{ url_for('nodes.list_nodes') }}" class="pf-v5-c-button pf-m-link">Cancel</a>
+
+                    <div class="pf-v5-u-display-flex pf-v5-u-gap-md" style="margin-top: 10px;">
+                        <button class="pf-v5-c-button pf-m-secondary" type="button"
+                                hx-post="{{ url_for('dashboard.check_api_alive', node_id=node.id) }}"
+                                hx-swap="outerHTML">
+                            Test API (5055)
+                        </button>
+
+                        <button class="pf-v5-c-button pf-m-secondary" type="button"
+                                hx-post="{{ url_for('dashboard.check_ui_alive', node_id=node.id) }}"
+                                hx-swap="outerHTML">
+                            Test UI (8502)
+                        </button>
+                    </div>
+                </div>
+
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <div class="pf-v5-c-content">
+        <h1>All Knowledge</h1>
+        <p>All sources across workflow buckets (filtered by your permissions).</p>
+    </div>
+
+    <div class="pf-v5-c-toolbar">
+        <div class="pf-v5-c-toolbar__content">
+            <form method="GET" action="{{ url_for('kb.list_articles') }}" class="pf-v5-u-display-flex pf-v5-u-flex-wrap pf-v5-u-align-items-center pf-v5-u-gap-md">
+                <input class="pf-v5-c-form-control" type="search" name="search" value="{{ search_query }}" placeholder="Search title...">
+
+                <select class="pf-v5-c-form-control" name="filter" onchange="this.form.submit()">
+                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Types</option>
+                    <option value="articles" {% if filter_type == 'articles' %}selected{% endif %}>Articles Only</option>
+                    <option value="links" {% if filter_type == 'links' %}selected{% endif %}>Links Only</option>
+                    <option value="youtube" {% if filter_type == 'youtube' %}selected{% endif %}>YouTube Only</option>
+                </select>
+
+                <select class="pf-v5-c-form-control" name="location" onchange="this.form.submit()">
+                    <option value="all" {% if location_filter == 'all' %}selected{% endif %}>All Locations</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc }}" {% if location_filter == loc %}selected{% endif %}>{{ loc }}</option>
+                    {% endfor %}
+                </select>
+
+                <input class="pf-v5-c-form-control" type="number" min="0" name="older_than_days" value="{{ older_than_days }}" placeholder="Older than days">
+
+                <button class="pf-v5-c-button pf-m-primary" type="submit">Apply</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <table class="pf-v5-c-table pf-m-grid-md">
+        <thead>
+            <tr>
+                <th style="width: 50px;">Type</th>
+                <th>Title</th>
+                <th>Location</th>
+                <th>Created By</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            {% set row_dom_id = 'item-' ~ (item.id | replace(':', '_') | replace('.', '_') | replace('/', '_')) %}
+            <tr id="{{ row_dom_id }}">
+                <td>
+                    {% if item.is_article %}<i class="fas fa-file-alt" title="Article"></i>
+                    {% elif item.is_yt %}<i class="fas fa-video pf-v5-u-info-color-100" title="YouTube"></i>
+                    {% else %}<i class="fas fa-link" title="Link"></i>{% endif %}
+                </td>
+                <td>
+                    {% if item.is_article %}
+                        <strong>{{ item.title[:-5] | replace('_', '-') }}</strong>
+                    {% else %}
+                        <a href="{{ item.display_url }}" target="_blank"><strong>{{ item.title }}</strong></a>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="pf-v5-c-label pf-m-grey">
+                        {{ item.location }}
+                    </span>
+                </td>
+                <td>{{ item.created_by or '—' }}</td>
+                <td>{{ item.created_display or '—' }}</td>
+                <td>
+                    <div class="pf-v5-c-action-list">
+                        {% if item.is_article %}
+                            {% set open_notebook_url = ui_base ~ "/notebooks/" ~ item.notebook_id|urlencode ~ "?modal=source&id=" ~ item.id|urlencode %}
+                            <a href="{{ open_notebook_url }}" target="_blank" class="pf-v5-c-button pf-m-link">
+                                <i class="fas fa-external-link-alt"></i> View
+                            </a>
+                        {% endif %}
+
+                        {# Actions based on workflow location #}
+                        {% if item.location == 'service_kb_new' %}
+                            <button class="pf-v5-c-button pf-m-link"
+                                    hx-post="{{ url_for('kb.action_peer_review', source_id=item.id) }}"
+                                    hx-confirm="Move this item to Peer Review?"
+                                    hx-target="#{{ row_dom_id }}"
+                                    hx-swap="outerHTML">
+                                Peer Review
+                            </button>
+
+                            <button class="pf-v5-c-button pf-m-link pf-m-danger"
+                                    hx-delete="{{ url_for('kb.delete_kb_source', source_id=item.id) }}"
+                                    hx-confirm="Permanently delete this item?"
+                                    hx-target="#{{ row_dom_id }}"
+                                    hx-swap="outerHTML">
+                                Delete
+                            </button>
+
+                        {% elif item.location == 'service_kb_peerreview' %}
+                            {% if current_user.is_reviewer() %}
+                                <button class="pf-v5-c-button pf-m-link"
+                                        hx-post="{{ url_for('kb.action_approve', source_id=item.id) }}"
+                                        hx-confirm="Approve and move to Internal KB?"
+                                        hx-target="#{{ row_dom_id }}"
+                                        hx-swap="outerHTML">
+                                    Approve
+                                </button>
+
+                                <a class="pf-v5-c-button pf-m-link" href="{{ url_for('kb.unapprove', source_id=item.id) }}">Unapproved</a>
+
+                                <button class="pf-v5-c-button pf-m-link pf-m-danger"
+                                        hx-delete="{{ url_for('kb.delete_kb_source', source_id=item.id) }}"
+                                        hx-confirm="Delete this item?"
+                                        hx-target="#{{ row_dom_id }}"
+                                        hx-swap="outerHTML">
+                                    Delete
+                                </button>
+                            {% endif %}
+
+                        {% elif item.location == 'service_kb_internal' %}
+                            {% if current_user.is_reviewer() %}
+                                <button class="pf-v5-c-button pf-m-link"
+                                        hx-post="{{ url_for('kb.action_customer_ready', source_id=item.id) }}"
+                                        hx-confirm="Move to Customer KB?"
+                                        hx-target="#{{ row_dom_id }}"
+                                        hx-swap="outerHTML">
+                                    Customer Ready
+                                </button>
+
+                                <button class="pf-v5-c-button pf-m-link pf-m-danger"
+                                        hx-delete="{{ url_for('kb.delete_kb_source', source_id=item.id) }}"
+                                        hx-confirm="Permanently delete this item?"
+                                        hx-target="#{{ row_dom_id }}"
+                                        hx-swap="outerHTML">
+                                    Delete
+                                </button>
+                            {% endif %}
+
+                        {% elif item.location == 'service_kb_customer' %}
+                            {% if current_user.is_reviewer() %}
+                                <button class="pf-v5-c-button pf-m-link"
+                                        hx-post="{{ url_for('kb.action_back_to_internal', source_id=item.id) }}"
+                                        hx-confirm="Move back to Internal KB?"
+                                        hx-target="#{{ row_dom_id }}"
+                                        hx-swap="outerHTML">
+                                    Internal
+                                </button>
+
+                                <button class="pf-v5-c-button pf-m-link pf-m-danger"
+                                        hx-delete="{{ url_for('kb.delete_kb_source', source_id=item.id) }}"
+                                        hx-confirm="Permanently delete this item?"
+                                        hx-target="#{{ row_dom_id }}"
+                                        hx-swap="outerHTML">
+                                    Delete
+                                </button>
+                            {% endif %}
+
+                        {% elif item.location == 'service_kb_unapproved' %}
+                            {% if current_user.is_reviewer() %}
+                                <button class="pf-v5-c-button pf-m-link pf-m-danger"
+                                        hx-delete="{{ url_for('kb.delete_kb_source', source_id=item.id) }}"
+                                        hx-confirm="Permanently delete this item?"
+                                        hx-target="#{{ row_dom_id }}"
+                                        hx-swap="outerHTML">
+                                    Delete
+                                </button>
+                            {% endif %}
+
+                        {% else %}
+                            <button class="pf-v5-c-button pf-m-link pf-m-danger"
+                                    hx-delete="{{ url_for('kb.delete_kb_source', source_id=item.id) }}"
+                                    hx-confirm="Permanently delete this item?"
+                                    hx-target="#{{ row_dom_id }}"
+                                    hx-swap="outerHTML">
+                                Delete
+                            </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="pf-v5-u-text-align-center pf-v5-u-p-xl">
+                    <p>No content found.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

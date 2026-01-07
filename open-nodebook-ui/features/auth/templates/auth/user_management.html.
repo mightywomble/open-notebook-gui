@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <div class="pf-v5-c-content">
+        <h1>User Management</h1>
+        <p>Manage local and Google Workspace users and their access levels.</p>
+    </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <table class="pf-v5-c-table pf-m-grid-md">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Account Type</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.email }}</td>
+                <td>
+                    <div id="role-badge-{{ user.id }}">
+                        <span class="pf-v5-c-label {{ 'pf-m-purple' if user.role == 'admin' else 'pf-m-blue' }}">
+                            {{ user.role }}
+                        </span>
+                    </div>
+                </td>
+                <td>
+                    {% if user.google_id %}
+                        <i class="fab fa-google"></i> Google
+                    {% else %}
+                        <i class="fas fa-user-lock"></i> Local
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.id != current_user.id %}
+                    <button class="pf-v5-c-button pf-m-secondary"
+                            hx-post="{{ url_for('auth.toggle_role', user_id=user.id) }}"
+                            hx-target="#role-badge-{{ user.id }}"
+                            hx-swap="innerHTML">
+                        Toggle Role
+                    </button>
+                    {% else %}
+                    <span class="pf-v5-u-font-size-xs pf-v5-u-color-200">(Current User)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

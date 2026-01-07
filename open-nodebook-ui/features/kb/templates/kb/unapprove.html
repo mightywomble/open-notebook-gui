@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+    <div class="pf-v5-c-content">
+        <h1>Mark Unapproved</h1>
+        <p>Add notes explaining why this item was unapproved. For articles, notes will be inserted as a code block at the top.</p>
+    </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+    <div class="pf-v5-c-card">
+        <div class="pf-v5-c-card__title">
+            <h2 class="pf-v5-c-title pf-m-lg">{{ source.title }}</h2>
+        </div>
+        <div class="pf-v5-c-card__body">
+            {% if source.title.endswith('.yaml') %}
+                {% set open_notebook_url = ui_base ~ "/notebooks/" ~ source.notebook_id|urlencode ~ "?modal=source&id=" ~ source_id|urlencode %}
+                <a href="{{ open_notebook_url }}" target="_blank" class="pf-v5-c-button pf-m-secondary pf-u-mb-md">
+                    <i class="fas fa-external-link-alt"></i> View Article
+                </a>
+            {% else %}
+                {% if source.asset and source.asset.url %}
+                <a href="{{ source.asset.url }}" target="_blank" class="pf-v5-c-button pf-m-secondary pf-u-mb-md">
+                    <i class="fas fa-external-link-alt"></i> Open Link
+                </a>
+                {% endif %}
+            {% endif %}
+
+            <form method="POST" class="pf-v5-c-form">
+                <div class="pf-v5-c-form__group">
+                    <label class="pf-v5-c-form__label" for="notes">
+                        <span class="pf-v5-c-form__label-text">Unapproval notes</span>
+                        <span class="pf-v5-c-form__label-required" aria-hidden="true">*</span>
+                    </label>
+                    <textarea class="pf-v5-c-form-control" id="notes" name="notes" rows="6" required></textarea>
+                </div>
+
+                <div class="pf-v5-c-form__actions">
+                    <button class="pf-v5-c-button pf-m-danger" type="submit">Mark Unapproved</button>
+                    <a class="pf-v5-c-button pf-m-link" href="{{ url_for('kb.peer_review') }}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

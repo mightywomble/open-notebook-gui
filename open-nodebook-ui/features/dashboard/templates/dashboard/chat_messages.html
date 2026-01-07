@@ -1,0 +1,50 @@
+{#
+  This partial is used both for initial render and HTMX updates.
+  It expects:
+    - messages: [{role: 'user'|'assistant', content: str}]
+    - warnings: [str]
+    - citations: [{title, location, id, relevance?}]
+#}
+
+<div id="chat-warnings">
+  {% if warnings and warnings|length %}
+    {% for w in warnings %}
+      <div class="pf-v5-c-alert pf-m-warning pf-u-mb-md" role="alert">
+        <div class="pf-v5-c-alert__icon"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div>
+        <p class="pf-v5-c-alert__title">{{ w }}</p>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<div class="pf-v5-c-content" id="chat-transcript" style="max-height: 45vh; overflow: auto; border: 1px solid #d2d2d2; padding: 1rem; border-radius: 6px; background: #fff;">
+  {% if messages and messages|length %}
+    {% for m in messages %}
+      <div style="margin-bottom: 1rem;">
+        <div style="font-weight: 700; color: #151515;">
+          {% if m.role == 'user' %}You{% else %}Assistant{% endif %}
+        </div>
+        <div style="white-space: pre-wrap;">{{ m.content }}</div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="pf-v5-u-color-200">Ask a question to get started.</p>
+  {% endif %}
+</div>
+
+<div id="chat-citations" class="pf-v5-u-mt-md">
+  {% if citations and citations|length %}
+    <h3 class="pf-v5-c-title pf-m-md">Relevant sources</h3>
+    <ul>
+      {% for c in citations %}
+        <li>
+          <strong>{{ c.title }}</strong>
+          <span class="pf-v5-u-color-200">— {{ c.location }}</span>
+          {% if c.relevance is defined and c.relevance is not none %}
+            <span class="pf-v5-u-color-200">(score {{ '%.2f'|format(c.relevance) }})</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

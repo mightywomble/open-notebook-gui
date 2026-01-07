@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pf-v5-c-content"><h1>Add Link</h1></div>
+<form method="POST" class="pf-v5-c-form pf-v5-u-mt-md">
+    <div class="pf-v5-c-form__group">
+        <label class="pf-v5-c-form__label">Title</label>
+        <input class="pf-v5-c-form-control" type="text" name="title" required>
+    </div>
+    <div class="pf-v5-c-form__group">
+        <label class="pf-v5-c-form__label">URL</label>
+        <input class="pf-v5-c-form-control" type="url" name="url" placeholder="https://..." required>
+    </div>
+    <button class="pf-v5-c-button pf-m-primary" type="submit">Save Link</button>
+</form>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="pf-v5-c-page__main-section pf-m-light">
+  <div class="pf-v5-c-content">
+    <h1 style="font-size: 3rem; color: #151515; font-weight: 700; margin-top: 0;">{{ company_name }} AI Knowledgebase</h1>
+    <p class="pf-v5-u-font-size-lg" style="color: #6a6e73; margin-bottom: 1.5rem;">
+      Centralized management for distributed AI documentation nodes.
+    </p>
+  </div>
+</section>
+
+<section class="pf-v5-c-page__main-section">
+  <div class="pf-v5-l-grid pf-m-gutter">
+    <div class="pf-v5-l-grid__item pf-m-12-col-on-lg pf-m-10-col-on-xl pf-m-offset-1-col-on-xl">
+      <div class="pf-v5-c-card">
+        <div class="pf-v5-c-card__title">
+          <h2 class="pf-v5-c-title pf-m-lg">Ask the Knowledgebase</h2>
+          <p class="pf-v5-u-color-200 pf-v5-u-mt-sm">
+            Answers are generated from the service_kb notebooks.
+            Content from <strong>New</strong> may be unreviewed; content from <strong>Internal</strong> is internal-only.
+          </p>
+        </div>
+
+        <div class="pf-v5-c-card__body">
+          <div id="chat-messages">
+            {% include 'dashboard/chat_messages.html' %}
+          </div>
+
+          <div id="chat-progress" style="display:none;" class="pf-v5-u-mt-md">
+            <div class="pf-v5-u-color-200" id="chat-status-text">Working…</div>
+            <div style="height: 8px; background: #d2d2d2; border-radius: 4px; overflow: hidden; margin-top: 6px;">
+              <div id="chat-progress-bar" style="width: 30%; height: 8px; background: #06c; animation: indeterminate 1.2s infinite;"></div>
+            </div>
+          </div>
+
+          <form id="chat-form" class="pf-v5-c-form pf-v5-u-mt-md">
+            <div class="pf-v5-l-grid pf-m-gutter">
+              <div class="pf-v5-l-grid__item pf-m-12-col-on-lg pf-m-8-col-on-xl">
+                <div class="pf-v5-c-form__group">
+                  <label class="pf-v5-c-form__label" for="message">
+                    <span class="pf-v5-c-form__label-text">Your question</span>
+                  </label>
+                  <textarea class="pf-v5-c-form-control" id="message" name="message" rows="3" required placeholder="Ask a question..."></textarea>
+                </div>
+              </div>
+
+              <div class="pf-v5-l-grid__item pf-m-12-col-on-lg pf-m-4-col-on-xl">
+                <div class="pf-v5-c-form__group">
+                  <label class="pf-v5-c-form__label">
+                    <span class="pf-v5-c-form__label-text">Notebooks to search</span>
+                  </label>
+                  <div class="pf-v5-c-form-control" style="height: 10.5rem; overflow: auto; padding: 0.5rem;">
+                    <fieldset class="pf-v5-c-form__fieldset" aria-label="Notebooks to search">
+                      {% for nb in service_kb_notebooks %}
+                        <div class="pf-v5-c-check pf-v5-u-mb-sm">
+                          <input class="pf-v5-c-check__input" type="checkbox" id="nb-{{ nb.name }}" name="notebooks" value="{{ nb.name }}" {% if nb.name in selected_notebooks %}checked{% endif %} />
+                          <label class="pf-v5-c-check__label" for="nb-{{ nb.name }}">{{ nb.label }}</label>
+                        </div>
+                      {% endfor %}
+                    </fieldset>
+                  </div>
+                </div>
+
+                <div class="pf-v5-c-form__group pf-v5-u-mt-md">
+                  <label class="pf-v5-c-form__label" for="min_relevance">
+                    <span class="pf-v5-c-form__label-text">Min score</span>
+                  </label>
+                  <input class="pf-v5-c-form-control" id="min_relevance" name="min_relevance" type="number" step="0.1" value="{{ min_relevance or 0 }}" />
+                </div>
+              </div>
+            </div>
+
+            <div class="pf-v5-c-form__actions pf-v5-u-mt-md">
+              <button class="pf-v5-c-button pf-m-primary" id="chat-send" type="submit">Send</button>
+              <button class="pf-v5-c-button pf-m-link" id="chat-clear" type="button">Clear</button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+@keyframes indeterminate {
+  0% { transform: translateX(-80%); }
+  100% { transform: translateX(260%); }
+}
+</style>
+
+<script>
+(function() {
+  const form = document.getElementById('chat-form');
+  const sendBtn = document.getElementById('chat-send');
+  const clearBtn = document.getElementById('chat-clear');
+  const progress = document.getElementById('chat-progress');
+  const statusText = document.getElementById('chat-status-text');
+  const transcript = () => document.getElementById('chat-transcript');
+  const warningsEl = () => document.getElementById('chat-warnings');
+  const citationsEl = () => document.getElementById('chat-citations');
+
+  function showProgress(text) {
+    statusText.textContent = text || 'Working…';
+    progress.style.display = 'block';
+  }
+  function hideProgress() {
+    progress.style.display = 'none';
+  }
+
+  function appendMessage(role, content, id) {
+    const t = transcript();
+    if (!t) return null;
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '1rem';
+    if (id) wrapper.id = id;
+
+    const title = document.createElement('div');
+    title.style.fontWeight = '700';
+    title.style.color = '#151515';
+    title.textContent = role === 'user' ? 'You' : 'Assistant';
+
+    const body = document.createElement('div');
+    body.style.whiteSpace = 'pre-wrap';
+    body.textContent = content || '';
+    body.className = 'chat-body';
+
+    wrapper.appendChild(title);
+    wrapper.appendChild(body);
+    t.appendChild(wrapper);
+    t.scrollTop = t.scrollHeight;
+    return body;
+  }
+
+  async function streamChat(formData) {
+    showProgress('Starting…');
+    sendBtn.disabled = true;
+
+    const userMsg = formData.get('message');
+    appendMessage('user', userMsg);
+    const assistantBody = appendMessage('assistant', '', 'assistant-stream');
+
+    if (warningsEl()) warningsEl().innerHTML = '';
+    if (citationsEl()) citationsEl().innerHTML = '';
+
+    const resp = await fetch('{{ url_for('dashboard.chat_stream') }}', {
+      method: 'POST',
+      body: formData,
+      headers: { 'Accept': 'text/event-stream' }
+    });
+
+    if (!resp.ok || !resp.body) {
+      hideProgress();
+      sendBtn.disabled = false;
+      if (assistantBody) assistantBody.textContent = 'Request failed.';
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    function handleEvent(ev, data) {
+      if (ev === 'status') {
+        showProgress(data);
+        return;
+      }
+
+      if (ev === 'token') {
+        hideProgress();
+        let token = data;
+        try { token = JSON.parse(data); } catch (e) { /* ignore */ }
+        if (assistantBody) assistantBody.textContent += token;
+        const t = transcript();
+        if (t) t.scrollTop = t.scrollHeight;
+        return;
+      }
+
+      if (ev === 'done') {
+        hideProgress();
+        sendBtn.disabled = false;
+        try {
+          const obj = JSON.parse(data);
+          if (obj.warnings && warningsEl()) {
+            warningsEl().innerHTML = obj.warnings.map(w => (
+              '<div class="pf-v5-c-alert pf-m-warning pf-u-mb-md" role="alert">'
+              + '<div class="pf-v5-c-alert__icon"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div>'
+              + '<p class="pf-v5-c-alert__title">' + w + '</p>'
+              + '</div>'
+            )).join('');
+          }
+          if (obj.citations && citationsEl()) {
+            let html = '<h3 class="pf-v5-c-title pf-m-md">Relevant sources</h3><ul>';
+            for (const c of obj.citations) {
+              const rel = (c.relevance !== null && c.relevance !== undefined) ? Number(c.relevance) : null;
+              const score = (rel !== null && !Number.isNaN(rel)) ? (' <span class="pf-v5-u-color-200">(score ' + rel.toFixed(2) + ')</span>') : '';
+              const titleHtml = c.url
+                ? ('<a href="' + c.url + '" target="_blank" rel="noopener noreferrer">' + c.title + '</a>')
+                : c.title;
+              html += '<li><strong>' + titleHtml + '</strong> <span class="pf-v5-u-color-200">— ' + c.location + '</span>' + score + '</li>';
+            }
+            html += '</ul>';
+            citationsEl().innerHTML = html;
+          }
+        } catch (e) {
+          // ignore
+        }
+        return;
+      }
+    }
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const frame = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+
+        let ev = 'message';
+        let data = '';
+        for (const line of frame.split('\n')) {
+          if (line.startsWith('event:')) ev = line.slice(6).trim();
+          if (line.startsWith('data:')) data += line.slice(5).trimStart();
+        }
+        handleEvent(ev, data);
+      }
+    }
+  }
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const fd = new FormData(form);
+    streamChat(fd).catch(err => {
+      hideProgress();
+      sendBtn.disabled = false;
+      console.error(err);
+    });
+  });
+
+  clearBtn.addEventListener('click', function() {
+    fetch('{{ url_for('dashboard.chat_clear') }}', { method: 'POST' })
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('chat-messages').innerHTML = html;
+      });
+  });
+})();
+</script>
+{% endblock %}

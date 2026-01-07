@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pf-v5-c-content"><h1>Create KB Article</h1></div>
+
+<form action="{{ url_for('kb.create_article') }}" method="POST" class="pf-v5-c-form">
+    <div class="pf-v5-c-card"><div class="pf-v5-c-card__body pf-v5-l-grid pf-m-gutter">
+        <div class="pf-v5-l-grid__item pf-m-6-col">
+            <label class="pf-v5-c-form__label">Category</label>
+            <select class="pf-v5-c-form-control" name="category">
+                <option>Howto</option><option>FAQ</option><option>Process</option><option>Customer Guide</option>
+            </select>
+        </div>
+        <div class="pf-v5-l-grid__item pf-m-6-col">
+            <label class="pf-v5-c-form__label">Author</label>
+            <input class="pf-v5-c-form-control" type="text" name="author" value="David Field" required>
+        </div>
+        <div class="pf-v5-l-grid__item pf-m-6-col">
+            <label class="pf-v5-c-form__label">Status</label>
+            <select class="pf-v5-c-form-control" name="status">
+                <option>active</option><option>depreciated</option>
+            </select>
+        </div>
+        <div class="pf-v5-l-grid__item pf-m-6-col">
+            <label class="pf-v5-c-form__label">Completion Status</label>
+            <select class="pf-v5-c-form-control" name="completion_status">
+                <option>New Document</option>
+                <option>Incomplete Document</option>
+                <option>Complete - Needs Peer Review</option>
+                <option>Complete - Peer Reviewed</option>
+            </select>
+        </div>
+    </div></div>
+
+    <div class="pf-v5-c-form__group">
+        <label class="pf-v5-c-form__label" for="summary">
+            <span class="pf-v5-c-form__label-text">Summary</span>
+            <span class="pf-v5-c-form__label-required" aria-hidden="true">*</span>
+        </label>
+        <input class="pf-v5-c-form-control" type="text" id="summary" name="summary" 
+            placeholder="Brief one-line summary of this article" required>
+    </div>
+
+    <div class="pf-v5-c-form__group" style="margin-top: 20px;">
+        <label class="pf-v5-c-form__label">Purpose</label>
+        <textarea class="pf-v5-c-form-control" name="purpose" rows="3" placeholder="Describe the goal of this article..."></textarea>
+    </div>
+
+    <div id="prereq-container" class="pf-v5-c-form__group" style="margin-top: 20px;">
+        <label class="pf-v5-c-form__label">Prerequisites</label>
+        <div class="pf-v5-c-check" style="margin-bottom: 5px;">
+            <input class="pf-v5-c-check__input" type="checkbox" checked disabled>
+            <input class="pf-v5-c-form-control" type="text" name="prereqs[]" placeholder="e.g. Admin access to server" oninput="autoSpawnPrereq(this)">
+        </div>
+    </div>
+    <button type="button" class="pf-v5-c-button pf-m-link pf-m-small" onclick="addPrereqField()">+ Add Prerequisite Manually</button>
+
+    <hr style="margin: 30px 0;">
+
+    <div id="block-container">
+        <h3>Instruction Guide</h3>
+        <p><small>Add content blocks below to build your guide.</small></p>
+    </div>
+    
+    <div class="pf-v5-c-action-list" style="margin-top: 20px; background: #f5f5f5; padding: 15px; border-radius: 4px;">
+        <button type="button" class="pf-v5-c-button pf-m-secondary" onclick="addBlock('Instructions')"><i class="fas fa-list-ol"></i> Add Instructions</button>
+        <button type="button" class="pf-v5-c-button pf-m-secondary" onclick="addBlock('Tests')"><i class="fas fa-vial"></i> Add Test</button>
+        <button type="button" class="pf-v5-c-button pf-m-secondary" onclick="addBlock('URL')"><i class="fas fa-link"></i> Add Link</button>
+        <button type="button" class="pf-v5-c-button pf-m-secondary" onclick="addBlock('YouTube')"><i class="fab fa-youtube"></i> Add YouTube Link</button>
+        <button type="button" class="pf-v5-c-button pf-m-secondary" onclick="addBlock('Reference')"><i class="fas fa-bookmark"></i> Add Reference</button>
+    </div>
+
+    <div class="pf-v5-c-form__actions" style="margin-top: 40px;">
+        <button class="pf-v5-c-button pf-m-primary pf-m-display-lg" type="submit">
+            <i class="fas fa-save"></i> Done & Save to Notebook
+        </button>
+    </div>
+</form>
+
+<script>
+// Logic to add more prerequisite lines
+function addPrereqField() {
+    const container = document.getElementById('prereq-container');
+    const div = document.createElement('div');
+    div.className = "pf-v5-c-check";
+    div.style.marginBottom = "5px";
+    div.innerHTML = `
+        <input class="pf-v5-c-check__input" type="checkbox" checked disabled>
+        <input class="pf-v5-c-form-control" type="text" name="prereqs[]" placeholder="Next requirement...">
+    `;
+    container.appendChild(div);
+}
+
+function autoSpawnPrereq(el) {
+    if (el.value.length > 0 && !el.dataset.hasSpawned) {
+        el.dataset.hasSpawned = "true";
+        addPrereqField();
+    }
+}
+
+// Logic to add instruction blocks
+function addBlock(type) {
+    const container = document.getElementById('block-container');
+    const div = document.createElement('div');
+    div.className = "pf-v5-c-card pf-m-compact";
+    div.style.marginTop = "15px";
+    div.style.borderLeft = "4px solid #0066cc";
+    
+    div.innerHTML = `
+        <div class="pf-v5-c-card__title">
+            <strong>${type} Block</strong>
+            <button type="button" class="pf-v5-c-button pf-m-plain" style="float:right" onclick="this.closest('.pf-v5-c-card').remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="pf-v5-c-card__body">
+            <input type="hidden" name="block_type[]" value="${type}">
+            <textarea class="pf-v5-c-form-control" name="block_value[]" rows="3" placeholder="Enter ${type} content here..."></textarea>
+        </div>
+    `;
+    container.appendChild(div);
+}
+</script>
+{% endblock %}
