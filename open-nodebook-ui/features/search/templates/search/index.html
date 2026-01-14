@@ -14,7 +14,7 @@
           <div class="pf-v5-c-card" style="background: #21262d; border: 1px solid #30363d;">
             <div class="pf-v5-c-card__header" style="padding: 0.75rem 1rem;">
               <h3 style="margin: 0; font-size: 14px; color: #8b949e;">
-                <i class="fas fa-book-open" style="margin-right: 0.5rem;"></i>Sources Referenced
+                <i class="fas fa-book-open" style="margin-right: 0.5rem;"></i>Sources in Context <small style="font-weight:normal;color:#6e7681;">(AI had access to these)</small>
               </h3>
             </div>
             <div class="pf-v5-c-card__body" id="sources-list" style="padding: 0.5rem 1rem;">
@@ -69,33 +69,61 @@
 #chat-messages .assistant { white-space: pre-wrap; }
 .status-done { color: #3fb950 !important; }
 .status-error { color: #f85149 !important; }
-.source-link {
-  display: inline-flex;
+.source-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  margin: 0.35rem 0;
+  background: #161b22;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+}
+.source-item:hover {
+  background: #1c2128;
+  border-color: #3d444d;
+}
+.source-icon {
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
-  margin: 0.25rem;
-  background: #30363d;
-  border-radius: 4px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.source-icon.source { background: #238636; }
+.source-icon.note { background: #8957e5; }
+.source-icon.insight { background: #d29922; }
+.source-icon i { color: white; font-size: 14px; }
+.source-info { flex: 1; min-width: 0; }
+.source-title {
   color: #58a6ff;
   text-decoration: none;
+  font-weight: 500;
   font-size: 13px;
-  transition: background 0.2s;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.source-link:hover {
-  background: #3d444d;
-  color: #79c0ff;
+.source-title:hover { color: #79c0ff; text-decoration: underline; }
+.source-meta {
+  font-size: 11px;
+  color: #8b949e;
+  margin-top: 2px;
 }
-.source-link .source-type {
-  background: #238636;
-  color: white;
-  padding: 2px 6px;
+.source-type-badge {
+  display: inline-block;
+  padding: 1px 6px;
   border-radius: 3px;
   font-size: 10px;
   text-transform: uppercase;
+  font-weight: 600;
 }
-.source-link.note .source-type { background: #8957e5; }
-.source-link.insight .source-type { background: #d29922; }
+.source-type-badge.source { background: #238636; color: white; }
+.source-type-badge.note { background: #8957e5; color: white; }
+.source-type-badge.insight { background: #d29922; color: white; }
 </style>
 
 <script>
@@ -146,13 +174,23 @@ function showSources(citations) {
   
   list.innerHTML = '';
   for (const c of citations) {
-    const a = document.createElement('a');
-    a.className = `source-link ${c.type}`;
-    a.href = c.url || '#';
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.innerHTML = `<span class="source-type">${c.type}</span><span>${c.id}</span>`;
-    list.appendChild(a);
+    const icon = c.type === 'source' ? 'fa-file-lines' : (c.type === 'note' ? 'fa-sticky-note' : 'fa-lightbulb');
+    
+    const item = document.createElement('div');
+    item.className = 'source-item';
+    item.innerHTML = `
+      <div class="source-icon ${c.type}">
+        <i class="fas ${icon}"></i>
+      </div>
+      <div class="source-info">
+        <a href="${c.url || '#'}" target="_blank" rel="noopener" class="source-title" title="${c.title}">${c.title}</a>
+        <div class="source-meta">
+          <span class="source-type-badge ${c.type}">${c.type}</span>
+          ${c.from_insight ? ' <span style="color:#8b949e;">via insight</span>' : ''}
+        </div>
+      </div>
+    `;
+    list.appendChild(item);
   }
   panel.style.display = 'block';
 }

@@ -62,18 +62,24 @@ def _pick_language_model(node_ip: str):
     return None
 
 
-def _extract_source_refs(text: str):
-    """Extract source/note/insight references from AI response like [source:id] [note:id] [insight:id]"""
-    pattern = r'\[(source|note|insight):([^\]]+)\]'
-    matches = re.findall(pattern, text)
-    refs = []
-    seen = set()
-    for ref_type, ref_id in matches:
-        key = f"{ref_type}:{ref_id}"
-        if key not in seen:
-            seen.add(key)
-            refs.append({'type': ref_type, 'id': ref_id})
-    return refs
+def _get_notebook_sources(base_url: str, notebook_id: str):
+    """Fetch all sources in a notebook."""
+    try:
+        # Note: Don't URL-encode - the API expects raw notebook_id parameter
+        # Try with a large limit to get all sources
+        url = f"{base_url}/api/sources?notebook_id={notebook_id}"
+        r = requests.get(url, timeout=30)
+        if r.status_code == 200:
+            data = r.json() or []
+            current_app.logger.warning(f"[SOURCES] Fetched {len(data)} sources from {notebook_id} via {url}")
+            return data
+        else:
+            current_app.logger.warning(f"[SOURCES] API returned status {r.status_code} for {notebook_id}")
+    except requests.exceptions.Timeout:
+        current_app.logger.warning(f"[SOURCES] Timeout fetching {notebook_id}")
+    except Exception as e:
+        current_app.logger.warning(f"[SOURCES] Error fetching {notebook_id}: {e}")
+    return []
 
 
 @bp.route('/')
@@ -143,7 +149,6 @@ def chat_stream():
 
     session['search_selected_notebooks'] = requested_notebooks
     
-    # Use the first selected notebook for chat
     notebook_name = requested_notebooks[0]
     notebook_id = svc_name_to_id[notebook_name]
     log(f'Using notebook: {notebook_name} ({notebook_id})')
@@ -187,36 +192,62 @@ def chat_stream():
         else:
             yield _sse('log', json.dumps({'step': 'session:reuse', 'session_id': chat_session_id}))
 
-        # Step 2: Build context for the notebook
-        yield _sse('status', 'Building context from notebook…')
+        # Step 2: Search for relevant sources using semantic search
+        yield _sse('status', 'Searching for relevant sources…')
         
+        relevant_sources = []
         try:
-            context_url = f"{base_url}/api/chat/context"
-            context_config = {
-                'include_sources': True,
-                'include_notes': True,
+            search_url = f"{base_url}/api/search"
+            search_payload = {
+                'query': question,
+                'type': 'vector',  # Use vector/semantic search
+                'limit': 20,  # Get top 20 relevant results
+                'search_sources': True,
+                'search_notes': False,
+                'notebook_ids': [notebook_id]
             }
-            context_payload = {'notebook_id': notebook_id, 'context_config': context_config}
-            yield _sse('log', json.dumps({'step': 'context:build', 'url': context_url}))
-            
-            resp = requests.post(context_url, json=context_payload, timeout=60)
-            yield _sse('log', json.dumps({'step': 'context:build', 'status': resp.status_code, 'size': len(resp.content)}))
-            
-            if resp.status_code != 200:
-                yield _sse('token', json.dumps(f'(Failed to build context: {resp.status_code})'))
-                yield _sse('log', json.dumps({'step': 'context:build', 'error': resp.text[:300]}))
-                yield _sse('done', json.dumps({'warnings': [], 'citations': []}))
-                return
-            
-            context = resp.json()
-            yield _sse('log', json.dumps({'step': 'context:build', 'context_keys': list(context.keys()) if isinstance(context, dict) else 'not_dict'}))
+            sr = requests.post(search_url, json=search_payload, timeout=30)
+            current_app.logger.warning(f"[SEARCH] API response status: {sr.status_code}")
+            if sr.status_code == 200:
+                search_json = sr.json() or {}
+                current_app.logger.warning(f"[SEARCH] Response keys: {search_json.keys()}")
+                search_results = search_json.get('results') or []
+                current_app.logger.warning(f"[SEARCH] Found {len(search_results)} raw results")
+                if search_results:
+                    current_app.logger.warning(f"[SEARCH] First result: {search_results[0]}")
+                # Extract unique source IDs from search results
+                relevant_sources = []
+                seen_ids = set()
+                for result in search_results:
+                    src_id = result.get('source_id') or result.get('id')
+                    if src_id and src_id not in seen_ids:
+                        relevant_sources.append(result)
+                        seen_ids.add(src_id)
+                current_app.logger.warning(f"[SEARCH] Found {len(relevant_sources)} unique relevant sources for query: {question[:50]}")
+            else:
+                current_app.logger.warning(f"[SEARCH] Search API returned {sr.status_code}: {sr.text[:200]}")
         except Exception as e:
-            yield _sse('token', json.dumps(f'(Error building context: {str(e)[:100]})'))
-            yield _sse('log', json.dumps({'step': 'context:build', 'error': str(e)}))
-            yield _sse('done', json.dumps({'warnings': [], 'citations': []}))
-            return
+            current_app.logger.warning(f"[SEARCH] Error: {e}")
+        
+        # If search didn't work, fall back to fetching all sources
+        if not relevant_sources:
+            yield _sse('log', json.dumps({'step': 'sources:fetch', 'method': 'fallback', 'count': 0}))
+            relevant_sources = _get_notebook_sources(base_url, notebook_id)
+        
+        yield _sse('log', json.dumps({'step': 'sources:fetch', 'count': len(relevant_sources)}))
 
-        # Step 3: Execute the chat
+        # Step 3: Build context from relevant sources
+        yield _sse('status', 'Building context from relevant sources…')
+        
+        # Pass the search results directly to the AI
+        context = {
+            'sources': relevant_sources,
+            'notebook_id': notebook_id,
+        }
+        current_app.logger.warning(f"[CONTEXT] Built context with {len(relevant_sources)} relevant sources")
+        yield _sse('log', json.dumps({'step': 'context:build', 'source_count': len(context.get('sources', []))}))
+
+        # Step 4: Execute the chat
         yield _sse('status', 'Asking AI (this may take a while)…')
         
         try:
@@ -244,7 +275,6 @@ def chat_stream():
             result = resp.json()
             yield _sse('log', json.dumps({'step': 'chat:execute', 'result_keys': list(result.keys()) if isinstance(result, dict) else 'not_dict'}))
             
-            # Extract the AI's response from messages (type='ai' not role='assistant')
             messages_list = result.get('messages', [])
             yield _sse('log', json.dumps({'step': 'chat:execute', 'messages': [{'type': m.get('type'), 'content_len': len(m.get('content',''))} for m in messages_list]}))
             
@@ -262,29 +292,56 @@ def chat_stream():
             
             yield _sse('log', json.dumps({'step': 'answer', 'length': len(answer)}))
             
-            # Extract source references from answer
-            source_refs = _extract_source_refs(answer)
-            yield _sse('log', json.dumps({'step': 'sources:extract', 'refs': source_refs}))
+            # Extract sources from context response
+            yield _sse('status', 'Building source list…')
             
-            # Build citations with links to Open-Notebook UI
             citations = []
-            for ref in source_refs:
-                ref_type = ref['type']
-                ref_id = ref['id']
-                # Build URL to the source/note/insight in Open-Notebook
-                if ref_type == 'source':
-                    url = f"{ui_base}/notebooks/{quote(str(notebook_id), safe='')}?" + urlencode({'modal': 'source', 'id': ref_id})
-                elif ref_type == 'note':
-                    url = f"{ui_base}/notebooks/{quote(str(notebook_id), safe='')}?" + urlencode({'modal': 'note', 'id': ref_id})
-                else:  # insight
-                    url = f"{ui_base}/notebooks/{quote(str(notebook_id), safe='')}?" + urlencode({'modal': 'insight', 'id': ref_id})
-                
-                citations.append({
-                    'type': ref_type,
-                    'id': ref_id,
-                    'title': f"[{ref_type}:{ref_id}]",
-                    'url': url,
-                })
+            
+            # The context response has structure: {'context': {...}, 'token_count': X, 'char_count': Y}
+            # where context is a dict with 'sources' and 'notes' keys
+            context_dict = context.get('context', {}) if isinstance(context, dict) else {}
+            current_app.logger.warning(f"[DEBUG] context_dict type: {type(context_dict)}, keys: {context_dict.keys() if isinstance(context_dict, dict) else 'N/A'}")
+            
+            # Extract source IDs from the sources array in context
+            sources_in_context = context_dict.get('sources', []) if isinstance(context_dict, dict) else []
+            current_app.logger.warning(f"[DEBUG] Sources in context: {len(sources_in_context)} - {sources_in_context[:3]}")
+            
+            # If context has sources, use those
+            if sources_in_context:
+                for src in sources_in_context[:20]:
+                    if isinstance(src, dict):
+                        source_id = src.get('id') or src.get('source_id')
+                        title = src.get('title') or source_id or 'Unknown'
+                    else:
+                        source_id = str(src)
+                        title = source_id
+                    
+                    if source_id:
+                        url = f"{ui_base}/notebooks/{quote(str(notebook_id), safe='')}?" + urlencode({'modal': 'source', 'id': source_id})
+                        citations.append({
+                            'type': 'source',
+                            'id': source_id,
+                            'title': title,
+                            'url': url,
+                        })
+            
+            # Use relevant sources from search results
+            if not citations and relevant_sources:
+                current_app.logger.warning(f"[DEBUG] Using {len(relevant_sources)} relevant sources")
+                for src in relevant_sources:
+                    source_id = src.get('source_id') or src.get('id')
+                    title = src.get('title') or src.get('name') or source_id
+                    if source_id:
+                        url = f"{ui_base}/notebooks/{quote(str(notebook_id), safe='')}?" + urlencode({'modal': 'source', 'id': source_id})
+                        citations.append({
+                            'type': 'source',
+                            'id': source_id,
+                            'title': title,
+                            'url': url,
+                        })
+            
+            current_app.logger.warning(f"[DEBUG] Final citations count: {len(citations)}")
+            yield _sse('log', json.dumps({'step': 'sources:list', 'count': len(citations)}))
             
             # Stream the answer in chunks
             for chunk in [answer[i:i+50] for i in range(0, len(answer), 50)]:
