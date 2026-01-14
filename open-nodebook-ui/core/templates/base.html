@@ -32,7 +32,7 @@
 {% if authed %}
     <header class="pf-v5-c-page__header">
         <div class="pf-v5-c-page__header-brand">
-            <a href="{{ url_for('dashboard.index') }}" class="pf-v5-c-page__header-brand-link" style="text-decoration: none; color: white; font-weight: bold;">
+            <a href="{{ url_for('search.index') }}" class="pf-v5-c-page__header-brand-link" style="text-decoration: none; color: white; font-weight: bold;">
                 {% if company_icon_url %}
                   <img src="{{ company_icon_url }}" alt="{{ company_name }} icon" style="height: 28px; width: 28px; object-fit: contain; vertical-align: middle; margin-right: 0.5rem; background: #fff; border-radius: 6px; padding: 2px;" />
                 {% endif %}
@@ -103,11 +103,6 @@
                             <i class="fas fa-robot pf-v5-u-mr-sm" aria-hidden="true"></i>Ask AI
                         </span>
                     </li>
-                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'dashboard.index' %}pf-m-current{% endif %}">
-                        <a href="{{ url_for('dashboard.index') }}" class="pf-v5-c-nav__link">
-                            <i class="fas fa-comments pf-v5-u-mr-sm" aria-hidden="true"></i>Ask AI
-                        </a>
-                    </li>
                     <li class="pf-v5-c-nav__item nav-child {% if ep == 'search.index' %}pf-m-current{% endif %}">
                         <a href="{{ url_for('search.index') }}" class="pf-v5-c-nav__link">
                             <i class="fas fa-magnifying-glass pf-v5-u-mr-sm" aria-hidden="true"></i>Search
@@ -115,10 +110,10 @@
                     </li>
                     <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.create_article' %}pf-m-current{% endif %}">
                         <a href="{{ url_for('kb.create_article') }}" class="pf-v5-c-nav__link">
-                            <i class="fas fa-file-circle-plus pf-v5-u-mr-sm" aria-hidden="true"></i>Create KB Article
+                            <i class="fas fa-file-pen pf-v5-u-mr-sm" aria-hidden="true"></i>Create KB Article
                         </a>
                     </li>
-                    <li class="pf-v5-c-nav__item nav-grandchild {% if ep == 'kb.add_link' %}pf-m-current{% endif %}">
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.add_link' %}pf-m-current{% endif %}">
                         <a href="{{ url_for('kb.add_link') }}" class="pf-v5-c-nav__link">
                             <i class="fas fa-link pf-v5-u-mr-sm" aria-hidden="true"></i>Add Link
                         </a>
