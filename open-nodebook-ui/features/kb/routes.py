@@ -59,12 +59,16 @@ def _ensure_workflow_notebooks(ip: str):
 def _fetch_sources(node: Node, notebook_id: str, search_query: str, filter_type: str):
     items = []
     if not notebook_id:
+        print(f"[!] _fetch_sources: notebook_id is empty")
         return items
 
     try:
         url = f"http://{node.ip_address}:5055/api/sources?notebook_id={notebook_id}"
-        resp = requests.get(url, timeout=10)
+        print(f"[*] _fetch_sources: fetching from {url}")
+        resp = requests.get(url, timeout=30)
+        print(f"[*] _fetch_sources: status {resp.status_code}")
         all_sources = resp.json()
+        print(f"[*] _fetch_sources: got {len(all_sources)} sources")
 
         for s in all_sources:
             title = s.get('title', '') or ''
@@ -90,7 +94,9 @@ def _fetch_sources(node: Node, notebook_id: str, search_query: str, filter_type:
             items.append(s)
 
     except Exception as e:
-        print(f"[!] API Fetch Error: {e}")
+        print(f"[!] API Fetch Error for {notebook_id}: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
 
     return items
 
@@ -363,7 +369,7 @@ def list_articles():
 
         try:
             url = f"http://{node.ip_address}:5055/api/sources?notebook_id={nb_id}"
-            resp = requests.get(url, timeout=10)
+            resp = requests.get(url, timeout=30)
             sources = resp.json()
         except Exception:
             sources = []
