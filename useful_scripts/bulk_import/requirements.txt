@@ -1,0 +1,11 @@
+# Requirements for ON Bulk Import scripts
+
+# HTTP requests library for API calls
+requests>=2.31.0,<3.0.0
+
+# Optional: Pre-commit hooks for development
+pre-commit>=3.5.0; extra == "dev"
+
+# Optional: Security scanning tools
+bandit>=1.7.5; extra == "dev"
+safety>=2.3.0; extra == "dev"
