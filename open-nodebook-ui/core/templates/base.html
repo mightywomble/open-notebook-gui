@@ -108,6 +108,11 @@
                             <i class="fas fa-comments pf-v5-u-mr-sm" aria-hidden="true"></i>Ask AI
                         </a>
                     </li>
+                    <li class="pf-v5-c-nav__item nav-child {% if ep == 'search.index' %}pf-m-current{% endif %}">
+                        <a href="{{ url_for('search.index') }}" class="pf-v5-c-nav__link">
+                            <i class="fas fa-magnifying-glass pf-v5-u-mr-sm" aria-hidden="true"></i>Search
+                        </a>
+                    </li>
                     <li class="pf-v5-c-nav__item nav-child {% if ep == 'kb.create_article' %}pf-m-current{% endif %}">
                         <a href="{{ url_for('kb.create_article') }}" class="pf-v5-c-nav__link">
                             <i class="fas fa-file-circle-plus pf-v5-u-mr-sm" aria-hidden="true"></i>Create KB Article

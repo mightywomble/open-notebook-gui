@@ -1,8 +1,25 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from core.models import db, Node
 from core.api_client import OpenNotebookAPI
+from core.constants import SERVICE_KB_NOTEBOOK_NAMES
 
 bp = Blueprint('nodes', __name__, template_folder='templates', url_prefix='/nodes')
+
+def _ensure_required_notebooks(ip: str):
+    """Ensure required notebooks exist on the node. Returns (created_names, existing_names)."""
+    notebooks = OpenNotebookAPI.get_notebooks(ip) or []
+    name_to_id = {n.get('name'): n.get('id') for n in notebooks if n.get('name')}
+
+    created = []
+    for name in SERVICE_KB_NOTEBOOK_NAMES:
+        if name not in name_to_id:
+            if OpenNotebookAPI.create_notebook(ip, name):
+                created.append(name)
+
+    # Recompute existing after potential creations
+    notebooks = OpenNotebookAPI.get_notebooks(ip) or []
+    existing = sorted({n.get('name') for n in notebooks if n.get('name')} & set(SERVICE_KB_NOTEBOOK_NAMES))
+    return created, existing
 
 @bp.route('/add', methods=['GET', 'POST'])
 def add_node():
@@ -21,8 +38,16 @@ def add_node():
         )
         db.session.add(new_node)
         db.session.commit()
-        
-        flash(f"Node {name} added successfully!", "success")
+        # Ensure required notebooks exist on the new node
+        try:
+            created, existing = _ensure_required_notebooks(ip_address)
+            if created:
+                flash(f"Node {name} added. Created notebooks: {', '.join(created)}.", 'success')
+            else:
+                flash(f"Node {name} added. All required notebooks already present ({', '.join(existing)}).", 'success')
+        except Exception:
+            flash(f"Node {name} added, but notebook verification failed.", 'warning')
+
         return redirect(url_for('dashboard.index'))
         
     return render_template('nodes/add.html')
@@ -82,3 +107,15 @@ def edit_node(node_id):
         return redirect(url_for('nodes.list_nodes'))
         
     return render_template('nodes/edit.html', node=node)
+
+@bp.route('/ensure_required/<int:node_id>', methods=['POST'])
+def ensure_required_notebooks(node_id):
+    """HTMX action: create any missing required notebooks for this node."""
+    node = Node.query.get_or_404(node_id)
+    created, existing = _ensure_required_notebooks(node.ip_address)
+    if created:
+        msg = f"<span class='pf-v5-c-badge pf-m-success'>Created: {', '.join(created)}</span>"
+        return msg, 200
+    else:
+        msg = "<span class='pf-v5-c-badge pf-m-read'>All required notebooks present</span>"
+        return msg, 200

@@ -47,6 +47,12 @@
                                 hx-swap="outerHTML">
                             Test UI (8502)
                         </button>
+
+                            <button class="pf-v5-c-button pf-m-secondary" type="button"
+                                hx-post="{{ url_for('nodes.ensure_required_notebooks', node_id=node.id) }}"
+                                hx-swap="outerHTML">
+                                Create Required Notebooks
+                            </button>
                     </div>
                 </div>
 

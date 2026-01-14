@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from functools import wraps
 from core.models import Node
+from core.constants import WORKFLOW_NOTEBOOKS
 from core.api_client import OpenNotebookAPI
 import datetime
 import requests
@@ -10,14 +11,6 @@ import yaml
 import re
 
 bp = Blueprint('kb', __name__, template_folder='templates', url_prefix='/kb')
-
-WORKFLOW_NOTEBOOKS = {
-    'new': 'service_kb_new',
-    'peerreview': 'service_kb_peerreview',
-    'internal': 'service_kb_internal',
-    'customer': 'service_kb_customer',
-    'unapproved': 'service_kb_unapproved',
-}
 
 
 def _is_htmx_request():
